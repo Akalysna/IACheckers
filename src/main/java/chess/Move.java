@@ -1,5 +1,7 @@
 package chess;
 
+import java.awt.Point;
+
 public class Move {
     private int xFrom, yFrom, xTo, yTo;
 
@@ -15,8 +17,14 @@ public class Move {
 	}
 	
 	public Location getMiddle() {
+
 		int xMiddle = (xFrom + xTo) / 2;
 		int yMiddle = (yFrom + yTo) / 2;
+		
+		double distance = new Point(xFrom, yFrom).distance(new Point(xTo,yTo)); 
+		if(Math.floor(distance) == 1) {
+			return null;
+		}
 		
 		return new Location(xMiddle, yMiddle);
 	}

@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -9,16 +10,31 @@ public class Checkers {
 
 	private PawnColor playerColorTurn;
 	private Scanner scanner;
+	public static final boolean showLog = false;
 
 	public Checkers(PawnColor firstColor) {
 		this.playerColorTurn = firstColor;
 		this.scanner = new Scanner(System.in);
 	}
 
+	public static void log(String str) {
+		if (showLog)
+			System.out.println(str);
+	}
+
 	public static void main(String[] args) {
 
 		Checkers checkers = new Checkers(PawnColor.WHITE);
-		checkers.playGame();
+		checkers.playGame(3);
+	}
+
+	public String formatLocationToText(Location l) {
+
+		if (l == null)
+			return "";
+
+		String x = Board.letter.get(l.getX());
+		return x + (l.getY() + 1);
 	}
 
 	public Location formatInputPlayer(String text) {
@@ -66,7 +82,7 @@ public class Checkers {
 		return l;
 	}
 
-	public void playGame() {
+	public void playGame(int depth) {
 		Board board = new Board();
 		board.initBoard();
 
@@ -77,26 +93,33 @@ public class Checkers {
 
 			if (player.equals(PawnColor.WHITE)) {
 
-
 				Location from = getMove(board, true, "Choisis ton coup");
 				Location to = getMove(board, false, "Choisis une destination");
+				
+				System.out.println("");
+				Checkers.log("from : " + from);
+				Checkers.log("to : " + to);
 
-				System.out.println("from : " + from);
-				System.out.println("to : " + to);
-
-				board.applyMove(new Move(from, to));
+				Move move = new Move(from, to);
+				board.applyMove(move);
 
 			} else {
 
 				System.out.println("Tour de l'IA");
-				EncapsuleMove bestMove = getBestMove(board, player, 3);
+				EncapsuleMove bestMove = getBestMove(board, player, depth);
 
 				if (bestMove != null) {
+					System.out.print("L'IA à joué : ");
 					for (Move move : bestMove) {
 						board.applyMove(move);
+
+						String from = formatLocationToText(move.getFrom());
+						String to = formatLocationToText(move.getTo());
+						System.out.println(String.format("(%s-%s)", from, to));
 					}
 
-					System.out.println("L'IA à joué " + bestMove);
+					System.out.println("");
+
 				} else {
 
 					System.out.println("L'IA ne peux plus jouer");
@@ -115,20 +138,25 @@ public class Checkers {
 
 	public EncapsuleMove getBestMove(Board board, PawnColor pawnColor, int depth) {
 
+		Checkers.log(pawnColor.toString());
 		List<EncapsuleMove> possibleMoves = board.getAllMoves(pawnColor);
-		System.out.println("possibleMoves : " + possibleMoves);
+		Checkers.log("possibleMoves : " + possibleMoves);
 		EncapsuleMove bestMove = null;
 		int bestScore = Integer.MIN_VALUE;
 
 		for (EncapsuleMove encapsuleMove : possibleMoves) {
 			Board newBoard = board.copy();
 
-			System.out.println("encapsuleMove : " + encapsuleMove);
+			Checkers.log("_________________________");
+//			newBoard.showBoard();
+
+			Checkers.log("encapsuleMove : " + encapsuleMove);
 			for (Move move : encapsuleMove) {
 				newBoard.applyMove(move);
 			}
 
 			int score = minMax(newBoard, depth, false);
+			Checkers.log("Score : " + score);
 
 			if (score > bestScore) {
 				bestScore = score;
@@ -136,7 +164,7 @@ public class Checkers {
 			}
 		}
 
-		System.out.println("bestMove : " + bestMove);
+		Checkers.log("bestMove : " + bestMove);
 		return bestMove;
 	}
 
@@ -150,8 +178,22 @@ public class Checkers {
 				Pawn pawn = board.getPawn(x, y);
 
 				if (pawn != null) {
-					int factor = pawn.getPawnColor() == PawnColor.BLACK ? 1 : -1;
-					score += pawn.isQueen() ? factor * 3 : factor * 1;
+					List<Move> listCapture = board.getCaptureMove(x, y, new ArrayList<>());
+					if (pawn.getPawnColor() == PawnColor.BLACK) {
+						if (pawn.isQueen())
+							score += 3;
+						else
+							score += 1;
+
+						score += listCapture.size();
+					} else {
+						if (pawn.isQueen())
+							score -= 3;
+						else
+							score -= 1;
+
+						score -= listCapture.size();
+					}
 				}
 			}
 		}
@@ -159,20 +201,24 @@ public class Checkers {
 		return score;
 	}
 
-	public int minMax(Board board, int depth, boolean isIA) {
+	public int minMax(Board board, int depth, boolean isMaxPlayer) {
 
+		Checkers.log("Depth : " + depth);
+//		board.showBoard();
 		if (depth == 0 || board.isGameOver()) {
-			return evaluate(board);
+			int result = evaluate(board);
+			Checkers.log("Result : " + result);
+			return result;
 		}
 
-		List<EncapsuleMove> moves = board.getAllMoves(isIA ? PawnColor.BLACK : PawnColor.WHITE);
+		List<EncapsuleMove> moves = board.getAllMoves(isMaxPlayer ? PawnColor.BLACK : PawnColor.WHITE);
 
 		// Aucun mouvement défaite du joueur
 		if (moves.isEmpty()) {
-			return isIA ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+			return isMaxPlayer ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 		}
 
-		int bestScore = isIA ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+		int bestScore = isMaxPlayer ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
 		for (EncapsuleMove encapsuleMove : moves) {
 
@@ -182,9 +228,9 @@ public class Checkers {
 				newBoard.applyMove(move);
 			}
 
-			int score = minMax(newBoard, depth - 1, !isIA);
+			int score = minMax(newBoard, depth - 1, !isMaxPlayer);
 
-			if (isIA) {
+			if (isMaxPlayer) {
 				bestScore = Math.max(bestScore, score);
 			} else {
 				bestScore = Math.min(bestScore, score);

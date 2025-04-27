@@ -12,7 +12,7 @@ public class EncapsuleMove implements Iterable<Move>{
 	}
 	
 	public EncapsuleMove(List<Move> moves) {
-		moves.addAll(moves);
+		this.moves.addAll(moves);
 	}
 	
 	public EncapsuleMove() {
