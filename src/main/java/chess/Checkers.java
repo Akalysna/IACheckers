@@ -1,7 +1,5 @@
 package chess;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 
@@ -9,61 +7,136 @@ import chess.Pawn.PawnColor;
 
 public class Checkers {
 
-	PawnColor playerColorTurn;
-	private boolean endGame = false;
+	private PawnColor playerColorTurn;
+	private Scanner scanner;
 
 	public Checkers(PawnColor firstColor) {
 		this.playerColorTurn = firstColor;
+		this.scanner = new Scanner(System.in);
 	}
 
 	public static void main(String[] args) {
 
-		Board board = new Board();
-//		board.showBoard();
-
-		board.turn(new Location(1, 6), new Location(2, 5));
-		board.turn(new Location(2, 3), new Location(3, 4));
-		board.turn(new Location(7, 6), new Location(6, 5));
-		board.turn(new Location(3, 4), new Location(3, 4));
-
+		Checkers checkers = new Checkers(PawnColor.WHITE);
+		checkers.playGame();
 	}
 
+	public Location formatInputPlayer(String text) {
+		String[] split = text.split("|");
 
-	public void gameLoop() {
-		while (!endGame) {
+		if (split.length != 2) {
+			System.out.println("Le format n'est pas le bon");
+			return null;
+		}
 
+		try {
+			String letter = split[0].toUpperCase();
+
+			int y = Integer.parseInt(split[1]) - 1;
+			int x = Board.letter.indexOf(letter);
+
+			return new Location(x, y);
+		} catch (NumberFormatException e) {
+			System.out.println("L'entré doit être une lettre suivi d'un chiffre");
+			return null;
 		}
 	}
 
-	public void ask() {
-		System.out.println("Au tour du joueur " + playerColorTurn.toString() + ".");
-		System.out.println("Qu'elle pion déplacé ?");
-		Scanner scanner = new Scanner(System.in);
-		String fromPawnPos = scanner.nextLine();
-		System.out.println("Où le déplacer ?");
-		String toPos = scanner.nextLine();
+	public Location getMove(Board board, boolean isFirst, String title) {
+		Location l = null;
+		boolean isPawnCase = true;
+
+		do {
+			System.out.print(title + " : ");
+			String fromPos = scanner.nextLine();
+
+			l = formatInputPlayer(fromPos);
+
+			if (l != null && isFirst) {
+				isPawnCase = !board.isFreeCase(l);
+
+				if (!isPawnCase) {
+					title = "Cette case n'a pas de pion veuillez en choisir une autre";
+				}
+			}
+
+
+		} while (l == null || !isPawnCase);
+
+		return l;
+	}
+
+	public void playGame() {
+		Board board = new Board();
+		board.initBoard();
+
+		PawnColor player = playerColorTurn;
+		board.showBoard();
+
+		while (!board.isGameOver()) {
+
+			if (player.equals(PawnColor.WHITE)) {
+
+
+				Location from = getMove(board, true, "Choisis ton coup");
+				Location to = getMove(board, false, "Choisis une destination");
+
+				System.out.println("from : " + from);
+				System.out.println("to : " + to);
+
+				board.applyMove(new Move(from, to));
+
+			} else {
+
+				System.out.println("Tour de l'IA");
+				EncapsuleMove bestMove = getBestMove(board, player, 3);
+
+				if (bestMove != null) {
+					for (Move move : bestMove) {
+						board.applyMove(move);
+					}
+
+					System.out.println("L'IA à joué " + bestMove);
+				} else {
+
+					System.out.println("L'IA ne peux plus jouer");
+					break;
+				}
+
+			}
+
+			board.showBoard();
+			player = player.equals(PawnColor.BLACK) ? PawnColor.WHITE : PawnColor.BLACK;
+		}
+
+		System.out.println("La partie est terminé");
 
 	}
-	
-	public Move getBestMove(Board board, PawnColor pawnColor, int depth) {
-		
-		List<Move> possibleMoves = board.getAllMoves(pawnColor);
-		
-		Move bestMove = null; 
-		int bestScore = Integer.MIN_VALUE; 
-		
-		for(Move move : possibleMoves) {
-			Board newBoard = board.copy(); 
-			newBoard.applyMove(move);
-			
+
+	public EncapsuleMove getBestMove(Board board, PawnColor pawnColor, int depth) {
+
+		List<EncapsuleMove> possibleMoves = board.getAllMoves(pawnColor);
+		System.out.println("possibleMoves : " + possibleMoves);
+		EncapsuleMove bestMove = null;
+		int bestScore = Integer.MIN_VALUE;
+
+		for (EncapsuleMove encapsuleMove : possibleMoves) {
+			Board newBoard = board.copy();
+
+			System.out.println("encapsuleMove : " + encapsuleMove);
+			for (Move move : encapsuleMove) {
+				newBoard.applyMove(move);
+			}
+
 			int score = minMax(newBoard, depth, false);
-			
-			if(score > bestScore) {
-				bestScore = score; 
-				bestMove = move;
+
+			if (score > bestScore) {
+				bestScore = score;
+				bestMove = encapsuleMove;
 			}
 		}
-		
+
+		System.out.println("bestMove : " + bestMove);
 		return bestMove;
 	}
 
@@ -92,7 +165,7 @@ public class Checkers {
 			return evaluate(board);
 		}
 
-		List<Move> moves = board.getAllMoves(isIA ? PawnColor.BLACK : PawnColor.WHITE);
+		List<EncapsuleMove> moves = board.getAllMoves(isIA ? PawnColor.BLACK : PawnColor.WHITE);
 
 		// Aucun mouvement défaite du joueur
 		if (moves.isEmpty()) {
@@ -101,10 +174,13 @@ public class Checkers {
 
 		int bestScore = isIA ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
-		for (Move move : moves) {
+		for (EncapsuleMove encapsuleMove : moves) {
 
 			Board newBoard = board.copy();
-			newBoard.applyMove(move);
+
+			for (Move move : encapsuleMove) {
+				newBoard.applyMove(move);
+			}
 
 			int score = minMax(newBoard, depth - 1, !isIA);
 

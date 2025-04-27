@@ -10,6 +10,10 @@ public class Move {
 		this.yTo = yTo;
 	}
 	
+	public Move(Location from, Location to) {
+		this(from.getX(), from.getY(), to.getX(), to.getY());
+	}
+	
 	public Location getMiddle() {
 		int xMiddle = (xFrom + xTo) / 2;
 		int yMiddle = (yFrom + yTo) / 2;
@@ -63,4 +67,11 @@ public class Move {
 	public void setYTo(int yTo) {
 		this.yTo = yTo;
 	}
+
+	@Override
+	public String toString() {
+		return "Move [xFrom=" + xFrom + ", yFrom=" + yFrom + ", xTo=" + xTo + ", yTo=" + yTo + "]";
+	}
+	
+	
 }
