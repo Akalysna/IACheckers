@@ -30,8 +30,8 @@ public class Move {
 	}
 	
 	public static Location getMiddle(int xFrom, int yFrom, int xTo, int yTo) {
-		int xMiddle = (xFrom + xTo) / 2;
-		int yMiddle = (yFrom + yTo) / 2;
+		int xMiddle = xFrom + (xTo - xFrom) / 2;
+		int yMiddle = yFrom + (yTo - yFrom) / 2;
 		
 		return new Location(xMiddle, yMiddle);
 	}

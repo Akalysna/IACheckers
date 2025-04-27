@@ -26,7 +26,7 @@ public class Location {
 	@Override
 	public boolean equals(Object obj) {
 		Location point = (Location) obj;
-		return super.equals(obj) && x == point.x && y == point.y;
+		return x == point.x && y == point.y;
 	}
 
 	@Override

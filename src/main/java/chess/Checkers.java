@@ -1,8 +1,10 @@
 package chess;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import chess.Pawn.PawnColor;
 
@@ -58,6 +60,13 @@ public class Checkers {
 		}
 	}
 
+	public String getIAMove(Move move) {
+		String from = formatLocationToText(move.getFrom());
+		String to = formatLocationToText(move.getTo());
+
+		return String.format("(%s-%s)", from, to);
+	}
+
 	public Location getMove(Board board, boolean isFirst, String title) {
 		Location l = null;
 		boolean isPawnCase = true;
@@ -93,15 +102,37 @@ public class Checkers {
 
 			if (player.equals(PawnColor.WHITE)) {
 
-				Location from = getMove(board, true, "Choisis ton coup");
-				Location to = getMove(board, false, "Choisis une destination");
-				
-				System.out.println("");
-				Checkers.log("from : " + from);
-				Checkers.log("to : " + to);
+				List<EncapsuleMove> list = board.getAllCaptureMove(player);
 
-				Move move = new Move(from, to);
-				board.applyMove(move);
+				if (!list.isEmpty()) {
+
+					System.out.println("Choisi parmi les chemins suivant");
+
+					for (int i = 0; i < list.size(); i++) {
+
+						List<String> str = list.get(i).moves.stream().map(this::getIAMove).collect(Collectors.toList());
+						System.out.println((i+1) + ": " + String.join(",", str));
+					}
+
+					int index = Integer.parseInt(scanner.nextLine()) - 1;
+
+
+					for (Move move : list.get(index)) {
+						board.applyMove(move);
+					}
+
+				} else {
+
+					Location from = getMove(board, true, "Choisis ton coup");
+					Location to = getMove(board, false, "Choisis une destination");
+
+					System.out.println("");
+					Checkers.log("from : " + from);
+					Checkers.log("to : " + to);
+
+					Move move = new Move(from, to);
+					board.applyMove(move);
+				}
 
 			} else {
 
@@ -112,10 +143,7 @@ public class Checkers {
 					System.out.print("L'IA à joué : ");
 					for (Move move : bestMove) {
 						board.applyMove(move);
-
-						String from = formatLocationToText(move.getFrom());
-						String to = formatLocationToText(move.getTo());
-						System.out.println(String.format("(%s-%s)", from, to));
+						System.out.println(getIAMove(move));
 					}
 
 					System.out.println("");
@@ -178,7 +206,7 @@ public class Checkers {
 				Pawn pawn = board.getPawn(x, y);
 
 				if (pawn != null) {
-					List<Move> listCapture = board.getCaptureMove(x, y, new ArrayList<>());
+					List<Move> listCapture = board.getCaptureMove(pawn.getPawnColor() , x, y, new ArrayList<>());
 					if (pawn.getPawnColor() == PawnColor.BLACK) {
 						if (pawn.isQueen())
 							score += 3;

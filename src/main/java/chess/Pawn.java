@@ -15,14 +15,12 @@ public class Pawn {
 			return sign;
 		}
 	}
-
-	private Location location;
+	
 	private boolean isQueen;
 	private PawnColor pawnColor;
 
-	public Pawn(Location location, PawnColor color) {
+	public Pawn(PawnColor color) {
 		super();
-		this.location = location;
 		this.isQueen = false;
 		this.pawnColor = color;
 	}
@@ -31,17 +29,13 @@ public class Pawn {
 		return pawnColor;
 	}
 
-	public Location getLocation() {
-		return location;
-	}
-	
 	public boolean isQueen() {
 		return isQueen;
 	}
 
 	@Override
 	public String toString() {
-		return "Pawn [location=" + location + ", isQueen=" + isQueen + ", isWhite=" + pawnColor + "]";
+		return "Pawn [isQueen=" + isQueen + ", isWhite=" + pawnColor + "]";
 	}
 
 
