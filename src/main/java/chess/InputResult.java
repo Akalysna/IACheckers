@@ -3,7 +3,6 @@ package chess;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import chess.Board.AskException;
 
 public class InputResult {
 	private String from;

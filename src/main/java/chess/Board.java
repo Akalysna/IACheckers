@@ -14,12 +14,14 @@ public class Board {
 	public static final int BOARD_SIZE = 10;
 
 
-	public Board(PawnColor firstColor) {
-		initBoard();
-	}
-
 	public Board() {
-		this(PawnColor.BLACK);
+		this.board = new Pawn[BOARD_SIZE][BOARD_SIZE];
+
+		for (int y = 0; y < BOARD_SIZE; y++) {
+			for (int x = 0; x < BOARD_SIZE; x++) {
+				board[x][y] = null;
+			}
+		}
 	}
 
 
@@ -40,45 +42,213 @@ public class Board {
 	}
 
 	public void loopBoard(BiConsumer<Integer, Integer> row) {
-		loopBoard(row, y -> {}, y -> {});
+		loopBoard(row, y -> {
+		}, y -> {
+		});
 	}
 
 	private void loopBoard(BiConsumer<Integer, Integer> row, IntConsumer column) {
-		loopBoard(row, column, y -> {});
-	}
-
-	private void initBoard() {
-		this.board = new Pawn[BOARD_SIZE][BOARD_SIZE];
-		loopBoard((x, y) -> {
-
-			board[x][y] = null;
-
-			// Black
-			if (y < 4 && (x + y) % 2 != 0) {
-				board[x][y] = new Pawn(new Location(x, y), PawnColor.BLACK);
-			}
-
-			// White
-			if (y >= 6 && (x + y) % 2 != 0) {
-				board[x][y] = new Pawn(new Location(x, y), PawnColor.WHITE);
-			}
+		loopBoard(row, column, y -> {
 		});
-
-		board[3][8] = null;
-		board[5][6] = null;
-
 	}
 
-	class EatingResult {
-		private List<Location> eatingPawn;
-		private List<Location> lastPawnPos;
+	public void initBoard() {
 
-		public EatingResult(List<Location> eatingPawn, List<Location> lastPawnPos) {
-			super();
-			this.eatingPawn = eatingPawn;
-			this.lastPawnPos = lastPawnPos;
+		for (int y = 0; y < BOARD_SIZE; y++) {
+			for (int x = 0; x < BOARD_SIZE; x++) {
+
+				// Black
+				if (y < 4 && (x + y) % 2 != 0) {
+					board[x][y] = new Pawn(new Location(x, y), PawnColor.BLACK);
+				}
+
+				// White
+				if (y >= 6 && (x + y) % 2 != 0) {
+					board[x][y] = new Pawn(new Location(x, y), PawnColor.WHITE);
+				}
+			}
 		}
+
+//		board[3][8] = null;
+//		board[5][6] = null;
+
 	}
+
+	public boolean isValid(int x, int y) {
+		return inBound(x, y) && isFreeCase(new Location(x, y));
+	}
+
+	public boolean isFreeCase(Location to) {
+		return board[to.getX()][to.getY()] == null;
+	}
+
+	public boolean inBound(int x, int y) {
+		return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+	}
+
+	public boolean inBound(Location l) {
+		return l.getX() >= 0 && l.getX() < BOARD_SIZE && l.getY() >= 0 && l.getY() < BOARD_SIZE;
+	}
+
+	public Pawn getPawn(int x, int y) {
+		return board[x][y];
+	}
+
+
+	// ____________________________________________________
+	
+	public boolean isGameOver() {
+		return false; 
+	}
+
+	public void setPawn(Pawn pawn, int x, int y) {
+		board[x][y] = pawn;
+	}
+	
+	public void applyMove(Move move) {
+		
+		if (!inBound(move.getFrom()) || !inBound(move.getTo()))
+			return;
+
+		Pawn pawn = board[move.getXFrom()][move.getYFrom()];
+		board[move.getXTo()][move.getYTo()] = pawn;
+		board[move.getXFrom()][move.getYFrom()] = null;
+	}
+
+	public List<Move> getAllMoves(PawnColor pawnColor) {
+
+		List<Move> moves = new ArrayList<>();
+
+		for (int y = 0; y < BOARD_SIZE; y++) {
+			for (int x = 0; x < BOARD_SIZE; x++) {
+
+				Pawn pawn = getPawn(x, y);
+
+				// Passer si la case est vide
+				if (pawn == null)
+					continue;
+
+				// Passer si le pion n'est pas celui du joueur
+				if (!pawn.getPawnColor().equals(pawnColor))
+					continue;
+
+				if (!pawn.isQueen()) {
+
+					List<Move> simpleMoves = getSimpleMoves(pawnColor, x, y);
+					List<Move> captureMoves = getCaptureMove(x, y, new ArrayList<>());
+
+					// Régle qui obligé a capture si la capture est possible
+					moves.addAll(captureMoves.isEmpty() ? simpleMoves : captureMoves);
+
+				}
+			}
+		}
+
+		return moves;
+	}
+
+	public List<Move> getSimpleMoves(PawnColor pawnColor, int x, int y) {
+		List<Move> moves = new ArrayList<>();
+
+		// Connaitre le sens de déplacement selon la nature de la pièce
+		int direction = pawnColor.equals(PawnColor.BLACK) ? 1 : -1;
+
+		// Droite
+		if (isValid(x - 1, y + direction)) {
+			moves.add(new Move(x, y, x - 1, y + direction));
+		}
+
+		// Gauche
+		if (isValid(x + 1, y + direction)) {
+			moves.add(new Move(x, y, x + 1, y + direction));
+		}
+
+		return moves;
+	}
+
+	public Board copy() {
+		Board duplicateBoard = new Board();
+
+		for (int y = 0; y < BOARD_SIZE; y++) {
+			for (int x = 0; x < BOARD_SIZE; x++) {
+				duplicateBoard.setPawn(getPawn(x, y), x, y);
+			}
+		}
+
+		return duplicateBoard;
+	}
+
+
+	public List<Move> getCaptureMove(int x, int y, List<Move> moves) {
+
+		// Meilleur chemin
+		List<Move> bestWay = new ArrayList<>(moves);
+
+		// Les directions
+		int[] xX = { 2, 2, -2, -2 };
+		int[] yY = { -2, 2, 2, -2 };
+
+		// Pour chaque direction
+		for (int i = 0; i < 4; i++) {
+
+			int xTo = x + xX[i];
+			int yTo = y + yY[i];
+
+			// Vérifie si je peux capturer le pion
+			if (canCapture(x, y, xTo, yTo)) {
+
+				Location middleLocation = Move.getMiddle(x, y, xTo, yTo);
+
+				// Vérifi si le pion à déjà été capturer
+				if (isEating(middleLocation, moves))
+					continue;
+
+				Move move = new Move(x, y, xTo, yTo);
+				moves.add(move);
+
+				List<Move> newMoves = getCaptureMove(xTo, yTo, moves);
+
+				if (newMoves.size() > bestWay.size()) {
+					bestWay = newMoves;
+				}
+
+			}
+
+		}
+
+		return bestWay;
+
+	}
+
+	public boolean isEating(Location l, List<Move> moves) {
+		for (Move m : moves) {
+			if (m.getMiddle().equals(l)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean canCapture(int xFrom, int yFrom, int xTo, int yTo) {
+
+		if (isValid(xTo, yTo)) {
+
+			int xMiddle = (xFrom + xTo) / 2;
+			int yMiddle = (yFrom + yTo) / 2;
+
+			Pawn middlePawn = getPawn(xMiddle, yMiddle);
+			Pawn currPawn = getPawn(xFrom, yFrom);
+
+			return middlePawn != null && !middlePawn.getPawnColor().equals(currPawn.getPawnColor());
+		}
+
+
+		return false;
+	}
+
+
+	// ____________________________________________________
+
 
 	public EatingResult eat(List<Location> from, List<Location> eatingPawn) {
 
@@ -157,15 +327,6 @@ public class Board {
 
 		return new EatingResult(bestWay, lastPos);
 	}
-
-	public boolean inBound(int x, int y) {
-		return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
-	}
-
-	public boolean inBound(Location l) {
-		return l.getX() >= 0 && l.getX() < BOARD_SIZE && l.getY() >= 0 && l.getY() < BOARD_SIZE;
-	}
-
 
 
 	public void turn(Location from, Location to) {
@@ -262,9 +423,7 @@ public class Board {
 		return false;
 	}
 
-	public boolean isFreeCase(Location to) {
-		return board[to.getX()][to.getY()] == null;
-	}
+
 
 	public void showBoard() {
 

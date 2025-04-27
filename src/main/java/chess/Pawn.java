@@ -34,6 +34,10 @@ public class Pawn {
 	public Location getLocation() {
 		return location;
 	}
+	
+	public boolean isQueen() {
+		return isQueen;
+	}
 
 	@Override
 	public String toString() {
