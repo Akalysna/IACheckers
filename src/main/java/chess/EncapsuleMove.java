@@ -15,7 +15,20 @@ public class EncapsuleMove implements Iterable<Move>{
 		this.moves.addAll(moves);
 	}
 	
-	public EncapsuleMove() {
+	/**
+	 * Transforme la liste de mouvements en une liste de locations chainées.
+	 * @return
+	 */
+	public List<Location> getChainedLocations(){
+		List<Location> locations = new ArrayList<>();
+		for(int i = 0; i < moves.size(); i++) {
+			Move move = moves.get(i);
+			locations.add(move.getFrom());
+			if(i == moves.size() - 1) {
+				locations.add(move.getTo());
+			}
+		}
+		return locations;
 	}
 
 	@Override

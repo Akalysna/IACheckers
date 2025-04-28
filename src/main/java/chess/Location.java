@@ -6,7 +6,6 @@ public class Location {
 	private int y;
 
 	public Location() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public Location(int x, int y) {

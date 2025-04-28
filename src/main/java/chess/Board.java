@@ -3,8 +3,6 @@ package chess;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.IntConsumer;
 
 import chess.Pawn.PawnColor;
 
@@ -14,7 +12,6 @@ public class Board {
 
 	private Pawn[][] board;
 	public static final int BOARD_SIZE = 10;
-
 
 	public Board() {
 		this.board = new Pawn[BOARD_SIZE][BOARD_SIZE];
@@ -26,6 +23,9 @@ public class Board {
 		}
 	}
 
+	/**
+	 * Initialise le plateau de jeu avec les pions noirs et blancs
+	 */
 	public void initBoard() {
 
 		for (int y = 0; y < BOARD_SIZE; y++) {
@@ -90,9 +90,9 @@ public class Board {
 			}
 		}
 
-		if (getAllMoves(PawnColor.BLACK).isEmpty())
+		if (getAllPlayerMoves(PawnColor.BLACK).isEmpty())
 			return true;
-		if (getAllMoves(PawnColor.WHITE).isEmpty())
+		if (getAllPlayerMoves(PawnColor.WHITE).isEmpty())
 			return true;
 
 		return false;
@@ -111,15 +111,12 @@ public class Board {
 		board[move.getXTo()][move.getYTo()] = pawn;
 		board[move.getXFrom()][move.getYFrom()] = null;
 
-		capture(move);
-	}
-
-	public void capture(Move move) {
+		// Capture d'un pion adverse 
 		Location location = move.getMiddle();
-
+	
 		if (location == null)
 			return;
-
+	
 		setPawn(null, location.getX(), location.getY());
 	}
 
@@ -141,8 +138,7 @@ public class Board {
 					continue;
 
 				if (!pawn.isQueen()) {
-//					System.out.println("_____");
-					List<Move> listCapMove = getCaptureMove(pawnColor, x, y, new ArrayList<>());
+					List<Move> listCapMove = findBestCapturePath(pawnColor, x, y, new ArrayList<>());
 					if (!listCapMove.isEmpty())
 						captureMoves.add(new EncapsuleMove(listCapMove));
 				}
@@ -172,7 +168,7 @@ public class Board {
 	}
 
 
-	public List<EncapsuleMove> getAllMoves(PawnColor pawnColor) {
+	public List<EncapsuleMove> getAllPlayerMoves(PawnColor pawnColor) {
 
 		List<EncapsuleMove> simpleMoves = new ArrayList<>();
 		List<EncapsuleMove> captureMoves = new ArrayList<>();
@@ -193,18 +189,14 @@ public class Board {
 				if (!pawn.isQueen()) {
 					simpleMoves.addAll(getSimpleMoves(pawnColor, x, y));
 
-
-					List<Move> listCapMove = getCaptureMove(pawnColor, x, y, new ArrayList<>());
+					List<Move> listCapMove = findBestCapturePath(pawnColor, x, y, new ArrayList<>());
 					if (!listCapMove.isEmpty())
 						captureMoves.add(new EncapsuleMove(listCapMove));
 				}
 			}
 		}
 
-		Checkers.log("simpleMoves : " + simpleMoves);
-		Checkers.log("captureMoves : " + simpleMoves);
-
-		// Régle qui obliga a capture si la capture est possible
+		// Régle qui oblige a capture si la capture est possible
 		return captureMoves.isEmpty() ? simpleMoves : getMaxCaptureLength(captureMoves);
 	}
 
@@ -250,7 +242,7 @@ public class Board {
 	 * @param moves
 	 * @return Retourne une liste vide s'il n'y a pas de capture
 	 */
-	public List<Move> getCaptureMove(PawnColor pawnColor, int x, int y, List<Move> moves) {
+	public List<Move> findBestCapturePath(PawnColor pawnColor, int x, int y, List<Move> moves) {
 
 		// Meilleur chemin
 		List<Move> bestWay = new ArrayList<>(moves);
@@ -262,27 +254,22 @@ public class Board {
 		// Pour chaque direction
 		for (int i = 0; i < 4; i++) {
 			
-//			System.out.println("i : " + i);
-
 			int xTo = x + xX[i];
 			int yTo = y + yY[i];
 
-			// Vérifie si je peux capturer le pion
+			// Vérifie si le mouvement est une capture
 			if (canCapture(pawnColor, x, y, xTo, yTo)) {
 				
-//				System.out.println("Can capture pawn");
-
 				Location middleLocation = Move.getMiddle(x, y, xTo, yTo);
-//				System.out.println(String.format("middleLocation x:%d y:%d", middleLocation.getX(), middleLocation.getY()));
 
-				// Vérifi si le pion à déjà été capturer
+				// Vérifie si le pion à déjà été capturer
 				if (isEating(middleLocation, moves))
 					continue;
 
 				Move move = new Move(x, y, xTo, yTo);
 				moves.add(move);
 
-				List<Move> newMoves = getCaptureMove(pawnColor, xTo, yTo, moves);
+				List<Move> newMoves = findBestCapturePath(pawnColor, xTo, yTo, moves);
 
 				if (newMoves.size() > bestWay.size()) {
 					bestWay = newMoves;
@@ -309,8 +296,6 @@ public class Board {
 	public boolean canCapture(PawnColor pawnColor, int xFrom, int yFrom, int xTo, int yTo) {
 
 		if (isValid(xTo, yTo)) {
-			
-//			System.out.println("isValid");
 
 			int xMiddle = xFrom + (xTo - xFrom) / 2;
 			int yMiddle = yFrom + (yTo - yFrom) / 2;
@@ -322,7 +307,6 @@ public class Board {
 
 			return !middlePawn.getPawnColor().equals(pawnColor);
 		}
-
 
 		return false;
 	}
